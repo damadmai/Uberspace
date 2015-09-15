@@ -15,13 +15,14 @@ Die erste Zeile stellt die betreffende Mail ins primäre Maildir zu. Hier könnt
 ### :envelope: Benachrichtigung inklusive [Header](https://de.wikipedia.org/wiki/Header_%28E-Mail%29) wie `From:` und `Subject:`
 Wenn der Betreff sowie Absender, jedoch nicht der Inhalt der E-Mail weitergeleitet werden soll, hilft folgendes.
 ```
-|/bin/sed -n '/^Received/,/^$/p' | /bin/sed -nr '/^(Content-Type|From|Subject|X-Sender|User-Agent):/p' | php -r 'while(!feof(STDIN)){echo(iconv_mime_decode(trim(fgets(STDIN)), 0, "ISO-8859-1").PHP_EOL);}' | mutt -e "set send_charset=utf-8; set from='$SENDER'; set user_agent=no; set copy=no" "jemand@example.com" -s "damadmai"
+|/usr/bin/reformime -u | /usr/bin/reformail -U "Content-Type:" -X "Content-Type:" -X "Date:" -X "From:" -X "Subject:" -X "X-Sender:" -X "User-Agent:" | iconv -f utf-8 -t ISO88591 | mutt -e "set send_charset=utf-8; set from='$SENDER'; set user_agent=no; set copy=no" "jemand@example.com" -s "damadmai"
 ```
-`/bin/sed -n '/Received/,/^$/p'` entfernt den Body(Inhalt) der Nachricht. (weil Received im Header vorkommt matcht es auf den Teil und ignoriert alles nach der leeren Zeile nach den Headerzeilen folgende)
+[`/usr/bin/reformime`](http://www.courier-mta.org/reformime.html)` -u` dekodiert MIME für Umlaute usw.
 
-`/bin/sed -nr '/^(Content-Type|From|Subject|X-Sender|User-Agent):/p'` filtert die gewünschten Header-Zeilen heraus.
+[`/usr/bin/reformail`](http://www.courier-mta.org/reformail.html)` -U "Content-Type:" -X "Content-Type:" -X "Date:" -X "From:" -X "Subject:" -X "X-Sender:" -X "User-Agent:"` filtert die gewünschten Header-Zeilen heraus.  
+`-U "Content-Type:"` sorgt dafür, dass nur der letzte derartige Header angezeigt wird.
 
-`php -r 'while(!feof(STDIN)){echo(iconv_mime_decode(trim(fgets(STDIN)), 0, "ISO-8859-1").PHP_EOL);}'` dekodiert MIME für Umlaute usw.
+`iconv -f utf-8 -t ISO88591` konvertiert Zeichenkodierung, sodass Umlaute korrekt dargestellt werden.
 
 `mutt` versendet die Benachrichtigung, wobei als Absender der ursprüngliche beibehalten wird. `"damadmai"` am Ende ist der Betreff der Benachrichtigung; dafür könnte auch die primäre E-Mail-Adresse bzw. [`$RECIPIENT`](http://www.qmail.org/man/man8/qmail-command.html) eingetragen werden.
 
